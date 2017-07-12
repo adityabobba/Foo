@@ -43,8 +43,8 @@ Sum of orders: 174.03
  */
 class Item {
 
-	private String description;
-	private float price;
+	private final String description;
+	private final float price;
 
 	public Item(String description, float price) {
 		super();
@@ -95,10 +95,15 @@ class OrderLine {
 }
 
 class Order {
+	private String orderName;
+	private List<OrderLine> orderLines;
 
-	private List<OrderLine> orderLines = new ArrayList<>();
+	public Order(String orderName) {
+		this.orderName = orderName;
+		orderLines = new ArrayList<>();
+	}
 
-	public void add(OrderLine o) throws Exception {
+	public void add(OrderLine o) {
 		if (o == null) {
 			System.err.println("ERROR - Order is NULL");
 			throw new IllegalArgumentException("Order is NULL");
@@ -114,110 +119,82 @@ class Order {
 		return orderLines.get(i);
 	}
 
-	public void clear() {
-		this.orderLines = new ArrayList<OrderLine>();
+	public String getOrderName() {
+		return orderName;
 	}
-}
 
-class calculator {
+	public BigDecimal calculate() {
+
+		System.out.println("*******" + this.getOrderName() + "*******");
+
+		BigDecimal totalTax = new BigDecimal(0);
+		BigDecimal total = new BigDecimal(0);
+
+		// Iterate through the items in the order
+		for (int i = 0; i < this.size(); i++) {
+
+			// Calculate the taxes
+			BigDecimal tax;
+
+			Item item = this.get(i).getItem();
+			float price = item.getPrice();
+			if (item.getDescription().contains("imported") || item.getDescription().contains("Imported")) {
+				tax =rounding(price).multiply(new BigDecimal(0.15)); // Extra 5% tax on
+				// imported items
+			} else {
+				tax = rounding(price).multiply(new BigDecimal(0.10));
+			}
+
+			// Calculate the total price
+			BigDecimal totalPrice = rounding(price).add(tax);
+
+			// Print out the item's total price
+			System.out.println(this.get(i).getQuantity() + " " + item.getDescription() + ": " + rounding(totalPrice.doubleValue()));
+
+			// Keep a running total
+			totalTax = totalTax.add(tax );
+			total  = total.add(totalPrice);
+		}
+
+		// Print out the total taxes
+		System.out.println("Sales Tax: " + rounding(totalTax.doubleValue()));
+
+
+		// Print out the total amount
+		System.out.println("Total: " + rounding(total.doubleValue()));
+
+		return total;
+	}
 
 	public static BigDecimal rounding(double value) {
 		BigDecimal returnValue = new BigDecimal(value);
 		return returnValue.setScale(2, RoundingMode.HALF_UP);
-	}
-
-	/**
-	 * receives a collection of orders. For each order, iterates on the order lines and calculate the total price which
-	 * is the item's price * quantity * taxes.
-	 *
-	 * For each order, print the total Sales Tax paid and Total price without taxes for this order
-	 */
-	public void calculate(Map<String, Order> o, List<String> orderList) {
-
-		BigDecimal grandtotal = new BigDecimal(0);
-
-		// Iterate through the orders
-		for (String orderName : orderList) {
-			System.out.println("*******" + orderName + "*******");
-			Order r = o.get(orderName);
-
-			BigDecimal totalTax = new BigDecimal(0);
-			BigDecimal total = new BigDecimal(0);
-
-			// Iterate through the items in the order
-			for (int i = 0; i < r.size(); i++) {
-
-				// Calculate the taxes
-				BigDecimal tax;
-
-				if (r.get(i).getItem().getDescription().contains("imported") || r.get(i).getItem().getDescription().contains("Imported")) {
-					tax =rounding(r.get(i).getItem().getPrice()).multiply(new BigDecimal(0.15)); // Extra 5% tax on
-					// imported items
-				} else {
-					tax = rounding(r.get(i).getItem().getPrice()).multiply(new BigDecimal(0.10));
-				}
-
-				// Calculate the total price
-				BigDecimal totalprice = rounding(r.get(i).getItem().getPrice()).add(tax);
-
-				// Print out the item's total price
-				System.out.println(r.get(i).getQuantity() + " " + r.get(i).getItem().getDescription() + ": " + rounding(totalprice.doubleValue()));
-
-				// Keep a running total
-				totalTax = totalTax.add(tax );
-				total  = total.add(totalprice);
-			}
-
-			// Print out the total taxes
-			System.out.println("Sales Tax: " + rounding(totalTax.doubleValue()));
-
-
-			// Print out the total amount
-			System.out.println("Total: " + rounding(total.doubleValue()));
-			grandtotal = grandtotal.add(total);
-		}
-
-		System.out.println("Sum of orders: " + rounding(grandtotal.doubleValue()));
 	}
 }
 
 public class Foo {
 
 	public static void main(String[] args) throws Exception {
-
-		Map<String, Order> o = new HashMap<String, Order>();
-		List<String> orderList = new ArrayList<>();
-
-		Order c = new Order();
-
-		double grandTotal = 0;
-
+		BigDecimal grandTotal = new BigDecimal(0);
+		Order c = new Order("Order 1");
 		c.add(new OrderLine(new Item("book", (float) 12.49), 1));
 		c.add(new OrderLine(new Item("music CD", (float) 14.99), 1));
 		c.add(new OrderLine(new Item("chocolate bar", (float) 0.85), 1));
+		grandTotal = grandTotal.add(c.calculate());
 
-		o.put("Order 1", c);
-		orderList.add("Order 1");
-
-		Order d = new Order();
-
+		Order d = new Order("Order 2");
 		d.add(new OrderLine(new Item("imported box of chocolate", 10), 1));
 		d.add(new OrderLine(new Item("imported bottle of perfume", (float) 47.50), 1));
+		grandTotal = grandTotal.add(d.calculate());
 
-		o.put("Order 2", d);
-		orderList.add("Order 2");
-
-		Order e = new Order();
-
+		Order e = new Order("Order 3");
 		e.add(new OrderLine(new Item("Imported bottle of perfume", (float) 27.99), 1));
 		e.add(new OrderLine(new Item("bottle of perfume", (float) 18.99), 1));
 		e.add(new OrderLine(new Item("packet of headache pills", (float) 9.75), 1));
 		e.add(new OrderLine(new Item("box of imported chocolates", (float) 11.25), 1));
+		grandTotal = grandTotal.add(e.calculate());
 
-		o.put("Order 3", e);
-		orderList.add("Order 3");
-
-		new calculator().calculate(o, orderList);
+		System.out.println("Sum of orders: " + Order.rounding(grandTotal.doubleValue()));
 
 	}
 }
